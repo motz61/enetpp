@@ -8,7 +8,7 @@ namespace enetpp {
 	//server can't use ENetEvent as ENetPeer is not thread safe. Instead track data that is safe.
 	template<typename ClientT>
 	class server_event {
-	public:
+	private:
 		ENetEventType _event_type;
 		enet_uint8 _channel_id;
 		ENetPacket* _packet;
@@ -27,6 +27,22 @@ namespace enetpp {
 			, _channel_id(channel_id)
 			, _packet(packet)
 			, _client(client) {
+		}
+
+		auto get_event_type() const {
+			return _event_type;
+		}
+
+		auto get_channel_id() const {
+			return _channel_id;
+		}
+
+		auto get_packet() const {
+			return _packet;
+		}
+
+		auto get_client() const {
+			return _client;
 		}
 	};
 

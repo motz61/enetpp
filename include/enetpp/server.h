@@ -31,7 +31,7 @@ namespace enetpp {
 		std::unique_ptr<std::thread> _thread;
 
 		//mapping of uid to peer so that sending packets to specific peers is safe.
-		std::unordered_map<unsigned int, ENetPeer*> _thread_peer_map;
+		std::unordered_map<uint32_t, ENetPeer*> _thread_peer_map;
 
 		client_ptr_vector _connected_clients;
 
@@ -200,7 +200,7 @@ namespace enetpp {
 		}
 
 		void disconnect_all_peers_in_thread() {
-			for (auto iter : _thread_peer_map) {
+			for (const auto& iter : _thread_peer_map) {
 				enet_peer_disconnect_now(iter.second, 0);
 				iter.second->data = nullptr;
 			}
@@ -211,7 +211,7 @@ namespace enetpp {
 			if (!_packet_queue.empty()) {
 				std::lock_guard<std::mutex> lock(_packet_queue_mutex);
 				while (!_packet_queue.empty()) {
-					auto qp = _packet_queue.front();
+					const auto& qp = _packet_queue.front();
 					_packet_queue.pop();
 
 					auto pi = _thread_peer_map.find(qp._client_id);

@@ -8,14 +8,6 @@ namespace enetpp {
 
 	class client_connect_params {
 	public:
-		size_t _channel_count;
-		enet_uint32 _incoming_bandwidth;
-		enet_uint32 _outgoing_bandwidth;
-		std::string _server_host_name;
-		enet_uint16 _server_port;
-		std::chrono::milliseconds _timeout;
-
-	public:
 		client_connect_params() 
 			: _channel_count(0)
 			, _incoming_bandwidth(0)
@@ -58,6 +50,37 @@ namespace enetpp {
 			return address;
 		}
 
+		auto get_channel_count() const {
+			return _channel_count;
+		}
+
+		auto get_incoming_bandwidth() const {
+			return _incoming_bandwidth;
+		}
+
+		auto get_outgoing_bandwidth() const {
+			return _outgoing_bandwidth;
+		}
+
+		auto get_server_host_name() const {
+			return _server_host_name;
+		}
+
+		auto get_server_port() const {
+			return _server_port;
+		}
+
+		auto get_timeout() const {
+			return _timeout;
+		}
+
+	private:
+		size_t _channel_count;
+		enet_uint32 _incoming_bandwidth;
+		enet_uint32 _outgoing_bandwidth;
+		std::string _server_host_name;
+		enet_uint16 _server_port;
+		std::chrono::milliseconds _timeout;
 	};
 
 }

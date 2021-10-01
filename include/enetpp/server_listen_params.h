@@ -12,7 +12,7 @@ namespace enetpp {
 	public:
 		using initialize_client_function = std::function<void(ClientT& client, const char* ip)>;
 
-	public:
+	private:
 		size_t _max_client_count;
 		size_t _channel_count;
 		enet_uint32 _incoming_bandwidth;
@@ -63,13 +63,41 @@ namespace enetpp {
 		server_listen_params& set_initialize_client_function(initialize_client_function f) {
 			_initialize_client_function = f;
 			return *this;
-		}		
+		}
 
 		ENetAddress make_listen_address() const {
-			ENetAddress address;
+			ENetAddress address = {};
 			address.host = ENET_HOST_ANY;
 			address.port = _listen_port;
 			return address;
+		}
+
+		auto get_max_client_count() const {
+			return _max_client_count;
+		}
+
+		auto get_channel_count() const {
+			return _channel_count;
+		}
+
+		auto get_incoming_bandwidth() const {
+			return _incoming_bandwidth;
+		}
+
+		auto get_outgoing_bandwidth() const {
+			return _outgoing_bandwidth;
+		}
+
+		auto get_listen_port() const {
+			return _listen_port;
+		}
+
+		auto get_peer_timeout() const {
+			return _peer_timeout;
+		}
+
+		auto get_initialize_client_function() const {
+			return _initialize_client_function;
 		}
 	};
 

@@ -5,7 +5,7 @@
 #include <thread>
 #include <queue>
 #include <mutex>
-#include <assert.h>
+#include <cassert>
 #include "global_state.h"
 #include "client_connect_params.h"
 #include "client_queued_packet.h"
@@ -57,11 +57,11 @@ namespace enetpp {
 		void client::connect(const client_connect_params& params) {
 			assert(global_state::get().is_initialized());
 			assert(!is_connecting_or_connected());
-			assert(params._channel_count > 0);
-			assert(params._server_port != 0);
-			assert(!params._server_host_name.empty());
+			assert(params.get_channel_count() > 0);
+			assert(params.get_server_port() != 0);
+			assert(!params.get_server_host_name().empty());
 
-			trace("connecting to '" + params._server_host_name + ":" + std::to_string(params._server_port) + "'");
+			trace("connecting to '" + params.get_server_host_name() + ":" + std::to_string(params.get_server_port()) + "'");
 
 			_should_exit_thread = false;
 			_thread = std::make_unique<std::thread>(&client::run_in_thread, this, params);
@@ -94,7 +94,7 @@ namespace enetpp {
 
 			if (!_event_queue.empty()) {
 
-				//!IMPORTANT! neet to copy the events for consumption to prevent deadlocks!
+				//!IMPORTANT! enet to copy the events for consumption to prevent deadlocks!
 				//ex.
 				//- event = JoinGameFailed packet received
 				//- causes event_handler to call client::disconnect
@@ -151,7 +151,7 @@ namespace enetpp {
 		void client::destroy_all_queued_packets() {
 			std::lock_guard<std::mutex> lock(_packet_queue_mutex);
 			while (!_packet_queue.empty()) {
-				enet_packet_destroy(_packet_queue.front()._packet);
+				enet_packet_destroy(_packet_queue.front().get_packet());
 				_packet_queue.pop();
 			}
 		}
@@ -173,21 +173,21 @@ namespace enetpp {
 		void client::run_in_thread(const client_connect_params& params) {
 			set_current_thread_name("enetpp::client");
 
-			ENetHost* host = enet_host_create(nullptr, 1, params._channel_count, params._incoming_bandwidth, params._outgoing_bandwidth);
+			ENetHost* host = enet_host_create(nullptr, 1, params.get_channel_count(), params.get_incoming_bandwidth(), params.get_outgoing_bandwidth());
 			if (host == nullptr) {
 				trace("enet_host_create failed");
 				return;
 			}
 
 			auto address = params.make_server_address();
-			ENetPeer* peer = enet_host_connect(host, &address, params._channel_count, 0);
+			ENetPeer* peer = enet_host_connect(host, &address, params.get_channel_count(), 0);
 			if (peer == nullptr) {
 				trace("enet_host_connect failed");
 				enet_host_destroy(host);
 				return;
 			}
 
-			enet_uint32 enet_timeout = static_cast<enet_uint32>(params._timeout.count());
+			enet_uint32 enet_timeout = static_cast<enet_uint32>(params.get_timeout().count());
 			enet_peer_timeout(peer, 0, enet_timeout, enet_timeout);
 
 			bool is_disconnecting = false;
@@ -220,7 +220,7 @@ namespace enetpp {
 
 				//flush / capture enet events
 				//http://lists.cubik.org/pipermail/enet-discuss/2013-September/002240.html
-				enet_host_service(host, 0, 0);
+				enet_host_service(host, nullptr, 0);
 				{
 					ENetEvent e;
 					while (enet_host_check_events(host, &e) > 0) {
@@ -244,15 +244,15 @@ namespace enetpp {
 			if (!_packet_queue.empty()) {
 				std::lock_guard<std::mutex> lock(_packet_queue_mutex);
 				while (!_packet_queue.empty()) {
-					auto qp = _packet_queue.front();
+					const auto& qp = _packet_queue.front();
 					_packet_queue.pop();
 
-					if (enet_peer_send(peer, qp._channel_id, qp._packet) != 0) {
+					if (enet_peer_send(peer, qp.get_channel_id(), qp.get_packet()) != 0) {
 						trace("enet_peer_send failed");
 					}
 
-					if (qp._packet->referenceCount == 0) {
-						enet_packet_destroy(qp._packet);
+					if (qp.get_packet()->referenceCount == 0) {
+						enet_packet_destroy(qp.get_packet());
 					}
 				}
 			}

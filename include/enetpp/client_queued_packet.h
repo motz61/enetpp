@@ -7,10 +7,6 @@ namespace enetpp {
 
 	class client_queued_packet {
 	public:
-		enet_uint8 _channel_id;
-		ENetPacket* _packet;
-
-	public:
 		client_queued_packet()
 			: _channel_id(0)
 			, _packet(nullptr) {
@@ -20,6 +16,18 @@ namespace enetpp {
 			: _channel_id(channel_id)
 			, _packet(packet) {
 		}
+
+		auto get_packet() const {
+			return _packet;
+		}
+
+		auto get_channel_id() const {
+			return _channel_id;
+		}
+
+	private:
+		enet_uint8 _channel_id;
+		ENetPacket* _packet;
 	};
 
 }
