@@ -12,16 +12,20 @@ static bool s_exit = false;
 static std::mutex s_cout_mutex;
 
 class server_client {
-public:
-	unsigned int _uid;
+private:
+	uint32_t _id;
 
 public:
 	server_client()
-		: _uid(0) {
+		: _id(0) {
 	}
 
-	unsigned int get_uid() const {
-		return _uid;
+	void set_id(uint32_t id) {
+		_id = id;
+	}
+
+	uint32_t get_id() const {
+		return _id;
 	}
 };
 
@@ -36,7 +40,7 @@ void run_server() {
 
 	unsigned int next_uid = 0;
 	auto init_client_func = [&](server_client& client, const char* ip) {
-		client._uid = next_uid;
+		client.set_id(next_uid);
 		next_uid++;
 	};
 
@@ -54,7 +58,7 @@ void run_server() {
 			trace_handler("received packet from client : '" + std::string(reinterpret_cast<const char*>(data), data_size) + "'");
 			trace_handler("forwarding packet to all other clients...");
 			server.send_packet_to_all_if(0, data, data_size, ENET_PACKET_FLAG_RELIABLE, [&](const server_client& destination) {
-				return destination.get_uid() != client.get_uid();
+				return destination.get_id() != client.get_id();
 			});
 		};
 

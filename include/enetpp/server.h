@@ -69,12 +69,12 @@ namespace enetpp {
 		void start_listening(const listen_params_type& params) {
 			assert(global_state::get().is_initialized());
 			assert(!is_listening());
-			assert(params._max_client_count > 0);
-			assert(params._channel_count > 0);
-			assert(params._listen_port != 0);
-			assert(params._initialize_client_function != nullptr);
+			assert(params.get_max_client_count() > 0);
+			assert(params.get_channel_count() > 0);
+			assert(params.get_listen_port() != 0);
+			assert(params.get_initialize_client_function() != nullptr);
 
-			trace("listening on port " + std::to_string(params._listen_port));
+			trace("listening on port " + std::to_string(params.get_listen_port()));
 
 			_should_exit_thread = false;
 			_thread = std::make_unique<std::thread>(&server::run_in_thread, this, params);
@@ -130,26 +130,26 @@ namespace enetpp {
 
 				while (!_event_queue_copy.empty()) {
 					auto& e = _event_queue_copy.front();
-					switch (e._event_type) {
+					switch (e.get_event_type()) {
 						case ENET_EVENT_TYPE_CONNECT: {
-							_connected_clients.push_back(e._client);
-							on_client_connected(*e._client);
+							_connected_clients.push_back(e.get_client());
+							on_client_connected(*e.get_client());
 							break;
 						}
 
 						case ENET_EVENT_TYPE_DISCONNECT: {
-							auto iter = std::find(_connected_clients.begin(), _connected_clients.end(), e._client);
+							auto iter = std::find(_connected_clients.begin(), _connected_clients.end(), e.get_client());
 							assert(iter != _connected_clients.end());
 							_connected_clients.erase(iter);
-							unsigned int client_id = e._client->get_id();
-							delete e._client;
+							unsigned int client_id = e.get_client()->get_id();
+							delete e.get_client();
 							on_client_disconnected(client_id);
 							break;
 						}
 
 						case ENET_EVENT_TYPE_RECEIVE: {
-							on_client_data_received(*e._client, e._packet->data, e._packet->dataLength);
-							enet_packet_destroy(e._packet);
+							on_client_data_received(*e.get_client(), e.get_packet()->data, e.get_packet()->dataLength);
+							enet_packet_destroy(e.get_packet());
 							break;
 						}
 
@@ -174,10 +174,10 @@ namespace enetpp {
 			auto address = params.make_listen_address();
 			ENetHost* host = enet_host_create(
 				&address,
-				params._max_client_count,
-				params._channel_count,
-				params._incoming_bandwidth,
-				params._outgoing_bandwidth);
+				params.get_max_client_count(),
+				params.get_channel_count(),
+				params.get_incoming_bandwidth(),
+				params.get_outgoing_bandwidth());
 			if (host == nullptr) {
 				trace("enet_host_create failed");
 			}
@@ -214,18 +214,18 @@ namespace enetpp {
 					const auto& qp = _packet_queue.front();
 					_packet_queue.pop();
 
-					auto pi = _thread_peer_map.find(qp._client_id);
+					auto pi = _thread_peer_map.find(qp.get_client_id());
 					if (pi != _thread_peer_map.end()) {
 
 						//enet_peer_send fails if state not connected. was getting random asserts on peers disconnecting and going into ENET_PEER_STATE_ZOMBIE.
 						if (pi->second->state == ENET_PEER_STATE_CONNECTED) {
 
-							if (enet_peer_send(pi->second, qp._channel_id, qp._packet) != 0) {
+							if (enet_peer_send(pi->second, qp.get_channel_id(), qp.get_packet()) != 0) {
 								trace("enet_peer_send failed");
 							}
 
-							if (qp._packet->referenceCount == 0) {
-								enet_packet_destroy(qp._packet);
+							if (qp.get_packet()->referenceCount == 0) {
+								enet_packet_destroy(qp.get_packet());
 							}
 						}
 					}
@@ -264,7 +264,7 @@ namespace enetpp {
 		}
 
 		void handle_connect_event_in_thread(const listen_params_type& params, const ENetEvent& e) {
-			enet_uint32 enet_timeout = static_cast<enet_uint32>(params._peer_timeout.count());
+			enet_uint32 enet_timeout = static_cast<enet_uint32>(params.get_peer_timeout().count());
 			enet_peer_timeout(e.peer, 0, enet_timeout, enet_timeout);
 
 			char peer_ip[256];
@@ -275,7 +275,7 @@ namespace enetpp {
 			//initialized with data causing them to be discarded.
 
 			auto client = new ClientT();
-			params._initialize_client_function(*client, peer_ip);
+			params.get_initialize_client_function()(*client, peer_ip);
 
 			assert(e.peer->data == nullptr);
 			e.peer->data = client;
@@ -313,7 +313,7 @@ namespace enetpp {
 		void destroy_all_queued_packets() {
 			std::lock_guard<std::mutex> lock(_packet_queue_mutex);
 			while (!_packet_queue.empty()) {
-				enet_packet_destroy(_packet_queue.front()._packet);
+				enet_packet_destroy(_packet_queue.front().get_packet());
 				_packet_queue.pop();
 			}
 		}
@@ -334,11 +334,11 @@ namespace enetpp {
 		}
 
 		void destroy_unhandled_event_data(event_type& e) {
-			if (e._event_type == ENET_EVENT_TYPE_CONNECT) {
-				delete e._client;
+			if (e.get_event_type() == ENET_EVENT_TYPE_CONNECT) {
+				delete e.get_client();
 			}
-			else if (e._event_type == ENET_EVENT_TYPE_RECEIVE) {
-				enet_packet_destroy(e._packet);
+			else if (e.get_event_type() == ENET_EVENT_TYPE_RECEIVE) {
+				enet_packet_destroy(e.get_packet());
 			}
 		}
 
